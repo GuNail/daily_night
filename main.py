@@ -1,10 +1,13 @@
 import random
+import http.client, urllib, json
 from time import localtime
 from requests import get, post
 from datetime import datetime, date
 from zhdate import ZhDate
 import sys
 import os
+
+
  
  
 def get_color():
@@ -102,17 +105,31 @@ def get_birthday(birthday, year, today):
     return birth_day
  
  
-def get_ciba():
-    url = "http://open.iciba.com/dsapi/"
-    headers = {
-        'Content-Type': 'application/json',
-        'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
-                      'AppleWebKit/537.36 (KHTML, like Gecko) Chrome/103.0.0.0 Safari/537.36'
-    }
-    r = get(url, headers=headers)
-    note_en = r.json()["content"]
-    note_ch = r.json()["note"]
-    return note_ch, note_en
+def Rainbow_fart():
+    key = config["tx_key"]
+    conn = http.client.HTTPSConnection('apis.tianapi.com')  #接口域名
+    params = urllib.parse.urlencode({'key':key})
+    headers = {'Content-type':'application/x-www-form-urlencoded'}
+    conn.request('POST','/caihongpi/index',params,headers)
+    tianapi = conn.getresponse()
+    result = tianapi.read()
+    data = result.decode('utf-8')
+    dict_data = json.loads(data)
+    return dict_data['result']['content']
+
+def daily_Engilsh():
+    key = config["tx_key"]
+    conn = http.client.HTTPSConnection('apis.tianapi.com')  #接口域名
+    params = urllib.parse.urlencode({'key':key})
+    headers = {'Content-type':'application/x-www-form-urlencoded'}
+    conn.request('POST','/everyday/index',params,headers)
+    tianapi = conn.getresponse()
+    result = tianapi.read()
+    data = result.decode('utf-8')
+    dict_data = json.loads(data)
+    en_text = dict_data['result']['content']
+    cn_text = dict_data['result']['note']
+    return en_text,cn_text
  
  
 def send_message(to_user, access_token, region_name, weather, temp, wind_dir, note_ch, note_en):
@@ -224,9 +241,16 @@ if __name__ == "__main__":
     weather, temp, wind_dir = get_weather(region)
     note_ch = config["note_ch"]
     note_en = config["note_en"]
+    rainbow_fart =config["Rainbow_fart"]
+    
     if note_ch == "" and note_en == "":
         # 获取词霸每日金句
-        note_ch, note_en = get_ciba()
+        note_eh, note_cn = daily_Engilsh()
+    
+    if(rainbow_fart==""):
+        rainbow_fart = Rainbow_fart()
+        
+        
     # 公众号推送消息
     for user in users:
         send_message(user, accessToken, region, weather, temp, wind_dir, note_ch, note_en)
