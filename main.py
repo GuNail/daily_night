@@ -7,15 +7,6 @@ from zhdate import ZhDate
 import sys
 import os
 
-
- 
- 
-def get_color():
-    # 获取随机颜色
-    get_colors = lambda n: list(map(lambda i: "#" + "%06x" % random.randint(0, 0xFFFFFF), range(n)))
-    color_list = get_colors(100)
-    return random.choice(color_list)
- 
  
 def get_access_token():
     # appId
@@ -32,7 +23,6 @@ def get_access_token():
         sys.exit(1)
     # print(access_token)
     return access_token
- 
  
 def get_weather(region):
     headers = {
@@ -62,7 +52,6 @@ def get_weather(region):
     # 风向
     wind_dir = response["now"]["windDir"]
     return weather, temp, wind_dir
- 
  
 def get_birthday(birthday, year, today):
     birthday_year = birthday.split("-")[0]
@@ -103,8 +92,7 @@ def get_birthday(birthday, year, today):
         birth_date = year_date
         birth_day = str(birth_date.__sub__(today)).split(" ")[0]
     return birth_day
- 
- 
+
 def Rainbow_fart():
     key = config["tx_key"]
     conn = http.client.HTTPSConnection('apis.tianapi.com')  #接口域名
@@ -131,8 +119,20 @@ def daily_Engilsh():
     cn_text = dict_data['result']['note']
     return en_text,cn_text
  
+def friend_Text():
+    key = config["tx_key"]
+    conn = http.client.HTTPSConnection('apis.tianapi.com')  #接口域名
+    params = urllib.parse.urlencode({'key':key})
+    headers = {'Content-type':'application/x-www-form-urlencoded'}
+    conn.request('POST','/pyqwenan/index',params,headers)
+    tianapi = conn.getresponse()
+    result = tianapi.read()
+    data = result.decode('utf-8')
+    dict_data = json.loads(data)
+    return dict_data['result']['content']
+
  
-def send_message(to_user, access_token, region_name, weather, temp, wind_dir, note_ch, note_en,Rainbow_fart_text):
+def send_message(to_user, access_token, region_name, weather, temp, wind_dir, note_ch, note_en,rainbow_fart,friend_text):
     url = "https://api.weixin.qq.com/cgi-bin/message/template/send?access_token={}".format(access_token)
     week_list = ["星期日", "星期一", "星期二", "星期三", "星期四", "星期五", "星期六"]
     year = localtime().tm_year
@@ -160,39 +160,33 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir, no
         "data": {
             "date": {
                 "value": "{} {}".format(today, week),
-                "color": get_color()
             },
             "region": {
                 "value": region_name,
-                "color": get_color()
             },
             "weather": {
                 "value": weather,
-                "color": get_color()
             },
             "temp": {
                 "value": temp,
-                "color": get_color()
             },
             "wind_dir": {
                 "value": wind_dir,
-                "color": get_color()
             },
             "love_day": {
                 "value": love_days,
-                "color": get_color()
             },
             "note_en": {
                 "value": note_en,
-                "color": get_color()
             },
             "note_ch": {
                 "value": note_ch,
-                "color": get_color()
             },
-            "Rainbow_fart":{
-                "value": Rainbow_fart_text,
-                "color": get_color()
+            "rainbow_fart": {
+                "value": rainbow_fart,
+            },
+            "friend_text": {
+                "value": friend_text,
             }
         }
     }
@@ -200,11 +194,11 @@ def send_message(to_user, access_token, region_name, weather, temp, wind_dir, no
         # 获取距离下次生日的时间
         birth_day = get_birthday(value["birthday"], year, today)
         if birth_day == 0:
-            birthday_data = "今天{}生日哦，祝{}生日快乐！".format(value["name"], value["name"])
+            birthday_data = "今天{}生日哦，{}生日快乐哦！超级喜欢芊芊！".format(value["name"], value["name"])
         else:
             birthday_data = "距离{}的生日还有{}天".format(value["name"], birth_day)
         # 将生日数据插入data
-        data["data"][key] = {"value": birthday_data, "color": get_color()}
+        data["data"][key] = {"value": birthday_data}
     headers = {
         'Content-Type': 'application/json',
         'User-Agent': 'Mozilla/5.0 (Windows NT 10.0; Win64; x64) '
@@ -245,17 +239,12 @@ if __name__ == "__main__":
     weather, temp, wind_dir = get_weather(region)
     note_ch = config["note_ch"]
     note_en = config["note_en"]
-    rainbow_fart =config["Rainbow_fart"]
     
-    if note_ch == "" and note_en == "":
-        # 获取词霸每日金句
-        note_eh, note_cn = daily_Engilsh()
-    
-    if(rainbow_fart==""):
-        rainbow_fart = Rainbow_fart()
-        
+    note_en, note_ch = daily_Engilsh()
+    rainbow_fart = Rainbow_fart()
+    friendText = friend_Text()
         
     # 公众号推送消息
     for user in users:
-        send_message(user, accessToken, region, weather, temp, wind_dir, note_ch, note_en,rainbow_fart)
+        send_message(user, accessToken, region, weather, temp, wind_dir, note_ch, note_en,rainbow_fart,friendText)
     os.system("pause")
